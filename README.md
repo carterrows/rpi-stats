@@ -27,14 +27,23 @@ Then open `http://<raspberry-pi-ip>:9000/` in your browser.
 ## Project structure
 - `main.py` — FastAPI app with `/` (HTML) and `/api/stats` (JSON: temp + fan rpm/%).
 - `templates/index.html` — Tailwind CDN UI with 1s polling, starts/stops on focus/blur; shows temp, fan rpm, fan percent, diagnostics.
-- `requirements.txt` — Python deps (fastapi, uvicorn, jinja2).
+- `requirements.in` — direct Python dependency pins.
+- `requirements.txt` — hash-verified, fully resolved dependency lock generated from `requirements.in` with `pip-compile`.
 - `Dockerfile`, `docker-compose.yml` — Container build/run setup for Pi.
 
 ## Local (non-Docker) run
 ```sh
 python -m venv .venv
 source .venv/bin/activate    # on Windows: .venv\\Scripts\\activate
-pip install -r requirements.txt
+pip install --require-hashes -r requirements.txt
 uvicorn main:app --host 0.0.0.0 --port 9000
 ```
 Visit `http://localhost:9000/`.
+
+## Refresh the dependency lock
+```sh
+python -m pip install pip-tools
+pip-compile --generate-hashes --strip-extras --output-file=requirements.txt requirements.in
+```
+
+The base Uvicorn package is used intentionally: its optional native performance extras do not provide Python 3.14 wheels for every 32-bit Raspberry Pi target. Uvicorn's default asyncio and h11 stack provides the same HTTP behavior without requiring a compiler in the runtime image.
